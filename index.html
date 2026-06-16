@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elite Homestay — Billing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root {
+  --navy:       #0C1A2E;
+  --navy-mid:   #162845;
+  --gold:       #C9A84C;
+  --gold-light: #F0DFA0;
+  --gold-dim:   rgba(201,168,76,0.15);
+  --cream:      #FAF8F3;
+  --white:      #ffffff;
+  --gray-50:    #F7F6F3;
+  --gray-100:   #EDEBE6;
+  --gray-200:   #D9D6CE;
+  --gray-400:   #9E9B93;
+  --gray-600:   #6B6860;
+  --gray-800:   #2E2C28;
+  --green:      #2D6A4F;
+  --green-bg:   #D8F3DC;
+  --orange:     #854F0B;
+  --orange-bg:  #FAEEDA;
+  --red:        #791F1F;
+  --red-bg:     #FCEBEB;
+  --blue:       #0C447C;
+  --blue-bg:    #E6F1FB;
+  --radius:     10px;
+  --radius-sm:  6px;
+  --radius-xs:  4px;
+  --shadow:     0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
+  --transition: all 0.18s ease;
+}
+
+/* ═══════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--gray-800);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════ */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════ */
+.sidebar {
+  width: 240px;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 200;
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+}
+.sidebar.hidden { transform: translateX(-100%); }
+
+/* brand */
+.sidebar-brand {
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.brand-icon {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--gold), #b8943e);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 13px;
+  box-shadow: 0 2px 8px rgba(201,168,76,0.35);
+}
+.brand-icon svg { width: 22px; height: 22px; fill: var(--navy); }
+.brand-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  color: var(--gold-light);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+.brand-sub { font-size: 11px; color: rgba(255,255,255,0.32); margin-top: 3px; }
+
+/* nav */
+.sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+.nav-section-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.22);
+  padding: 16px 22px 6px;
+  font-weight: 600;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 22px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.52);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: var(--transition);
+  user-select: none;
+  position: relative;
+}
+.nav-item::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.15s;
+}
+.nav-item:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.04); }
+.nav-item.active {
+  color: var(--gold-light);
+  border-left-color: var(--gold);
+  background: rgba(201,168,76,0.09);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+/* sidebar footer */
+.sidebar-footer {
+  padding: 16px 22px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.sync-row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  margin-bottom: 12px;
+}
+.sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #9E9B93; flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+.contact-row { display: flex; align-items: center; gap: 10px; }
+.contact-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), #b8943e);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 6px rgba(201,168,76,0.3);
+}
+.contact-avatar svg { width: 15px; height: 15px; fill: var(--navy); }
+.contact-info { min-width: 0; }
+.contact-num { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.78); }
+.contact-label { font-size: 10px; color: rgba(255,255,255,0.28); }
+
+/* ═══════════════════════════════════════
+   MAIN
+═══════════════════════════════════════ */
+.main {
+  margin-left: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════ */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-100);
+  padding: 0 28px;
+  height: 62px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 0 var(--gray-100), 0 2px 12px rgba(0,0,0,0.04);
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.menu-btn {
+  display: none;
+  background: none; border: none; cursor: pointer;
+  padding: 7px; border-radius: var(--radius-sm);
+  color: var(--gray-600); transition: var(--transition);
+}
+.menu-btn:hover { background: var(--gray-50); color: var(--gray-800); }
+.menu-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.page-heading { font-size: 16px; font-weight: 600; color: var(--gray-800); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; font-family: 'DM Sans', sans-serif;
+  transition: var(--transition); text-decoration: none; white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.btn-primary {
+  background: var(--navy); color: var(--gold-light);
+  box-shadow: 0 2px 6px rgba(12,26,46,0.2);
+}
+.btn-primary:hover { background: var(--navy-mid); box-shadow: 0 3px 10px rgba(12,26,46,0.28); }
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), #b8943e);
+  color: var(--navy);
+  box-shadow: 0 2px 6px rgba(201,168,76,0.3);
+}
+.btn-gold:hover { background: linear-gradient(135deg,#b8943e,#a07830); box-shadow: 0 3px 10px rgba(201,168,76,0.4); }
+.btn-ghost {
+  background: transparent; color: var(--gray-600);
+  border: 1px solid var(--gray-200);
+}
+.btn-ghost:hover { background: var(--gray-50); border-color: var(--gray-400); color: var(--gray-800); }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid #f0c0c0; }
+.btn-danger:hover { background: #f9d5d5; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ═══════════════════════════════════════
+   CONTENT
+═══════════════════════════════════════ */
+.content { padding: 28px; flex: 1; }
+
+/* ═══════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════ */
+.view { display: none; }
+.view.active { display: block; animation: fadeIn 0.22s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+/* ═══════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  padding: 20px 20px 18px;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.18s;
+}
+.stat-card:hover {
+  box-shadow: 0 16px 36px rgba(201,168,76,.16), 0 4px 10px rgba(12,26,46,.05);
+  border-color: rgba(201,168,76,.4);
+  transform: translateY(-3px);
+}
+.stat-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 7px;
+}
+.stat-value { font-size: 24px; font-weight: 700; color: var(--gray-800); line-height: 1; }
+.stat-meta { font-size: 12px; color: var(--gray-400); margin-top: 5px; }
+.stat-card.gold-accent { border-top: 3px solid var(--gold); }
+
+/* ═══════════════════════════════════════
+   TABLE CARD
+═══════════════════════════════════════ */
+.table-card {
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.table-card-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  background: linear-gradient(to right, var(--gray-50), var(--white));
+}
+.table-card-title { font-size: 14px; font-weight: 600; color: var(--gray-800); }
+.search-wrap { position: relative; }
+.search-wrap svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; stroke: var(--gray-400); fill: none; stroke-width: 2;
+}
+.search-input {
+  border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 8px 12px 8px 32px; font-size: 13px;
+  background: var(--white); color: var(--gray-800);
+  font-family: 'DM Sans', sans-serif; width: 210px;
+  outline: none; transition: var(--transition);
+}
+.search-input:focus { border-color: var(--navy); background: var(--white); box-shadow: 0 0 0 3px rgba(12,26,46,0.07); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+thead th {
+  padding: 11px 16px; text-align: left;
+  font-size: 11px; font-weight: 700; color: var(--gray-400);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  background: var(--gray-50); border-bottom: 1px solid var(--gray-100);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 13px 16px; color: var(--gray-800);
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #FAFAF7; }
+.mono { font-family: 'Courier New', monospace; font-size: 12px; color: var(--gray-600); font-weight: 600; }
+
+/* ═══════════════════════════════════════
+   BADGES
+═══════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: capitalize;
+}
+.badge-paid    { background: var(--green-bg);  color: var(--green); }
+.badge-pending { background: var(--orange-bg); color: var(--orange); }
+.badge-overdue { background: var(--red-bg);    color: var(--red); }
+.badge-staying { background: var(--blue-bg);   color: var(--blue); }
+
+/* ═══════════════════════════════════════
+   ICON BUTTONS
+═══════════════════════════════════════ */
+.action-group { display: flex; gap: 4px; }
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 6px 7px; border-radius: var(--radius-xs);
+  color: var(--gray-400); transition: var(--transition);
+}
+.icon-btn:hover { background: var(--gray-100); color: var(--gray-800); }
+.icon-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; display: block; }
+
+/* ═══════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════ */
+.empty-state {
+  padding: 56px 20px; text-align: center; color: var(--gray-400);
+}
+.empty-state svg { width: 44px; height: 44px; stroke: var(--gray-200); fill: none; stroke-width: 1.5; margin-bottom: 14px; display: block; margin-left: auto; margin-right: auto; }
+.empty-state .empty-title { font-size: 15px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; color: var(--gray-400); margin-bottom: 18px; }
+
+/* ═══════════════════════════════════════
+   MODAL
+═══════════════════════════════════════ */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(12,26,46,0.6); z-index: 500;
+  align-items: center; justify-content: center; padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  width: 100%; max-width: 520px;
+  max-height: 92vh;
+  display: flex; flex-direction: column;
+  animation: modal-in 0.22s cubic-bezier(.4,0,.2,1);
+}
+@keyframes modal-in { from { opacity: 0; transform: scale(0.95) translateY(12px); } to { opacity: 1; transform: none; } }
+.modal-head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  background: linear-gradient(to right, var(--gray-50), var(--white));
+}
+.modal-title { font-size: 16px; font-weight: 600; color: var(--gray-800); }
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  padding: 5px; border-radius: var(--radius-xs);
+  color: var(--gray-400); transition: var(--transition);
+}
+.modal-close:hover { background: var(--gray-100); color: var(--gray-800); }
+.modal-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; display: block; }
+.modal-body { padding: 22px 24px; overflow-y: auto; flex: 1; }
+.modal-foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-100);
+  display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+  background: var(--gray-50);
+}
+
+/* ═══════════════════════════════════════
+   FORM
+═══════════════════════════════════════ */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-row.single { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--gray-600); letter-spacing: 0.01em; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 9px 12px; font-size: 13px;
+  background: var(--white); color: var(--gray-800);
+  font-family: 'DM Sans', sans-serif; outline: none;
+  transition: var(--transition);
+  width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(12,26,46,0.08);
+}
+.form-group textarea { resize: vertical; min-height: 70px; }
+.form-group input:focus { background: var(--white); }
+.form-divider { border: none; border-top: 1px solid var(--gray-100); margin: 16px 0; }
+.section-label {
+  font-size: 12px; font-weight: 600; color: var(--gray-600);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ═══════════════════════════════════════
+   EXTRA ITEMS
+═══════════════════════════════════════ */
+.extra-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.extra-item input { flex: 1; }
+.extra-item .inp-sm { width: 100px; flex: none; }
+.extra-item .icon-btn { flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   TOTAL BOX
+═══════════════════════════════════════ */
+.total-box {
+  background: var(--gray-50); border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm); padding: 16px 18px; margin-top: 14px;
+}
+.total-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--gray-600); margin-bottom: 7px; }
+.total-row.grand {
+  font-weight: 700; font-size: 16px; color: var(--gray-800);
+  border-top: 1px solid var(--gray-200); padding-top: 10px;
+  margin-top: 4px; margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════
+   PROPERTY PAGE
+═══════════════════════════════════════ */
+.prop-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 20px;
+  box-shadow: 0 4px 16px rgba(12,26,46,0.2);
+}
+.prop-hero-icon {
+  width: 58px; height: 58px;
+  background: linear-gradient(135deg, var(--gold), #b8943e);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(201,168,76,0.4);
+}
+.prop-hero-icon svg { width: 28px; height: 28px; fill: var(--navy); }
+.prop-hero-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--gold-light); }
+.prop-hero-meta { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+.prop-form-card {
+  background: var(--white); border: 1px solid var(--gray-100);
+  border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+}
+.prop-form-card h3 { font-size: 13px; font-weight: 700; color: var(--gray-600); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.07em; }
+.amenity-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.amenity-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 500;
+  background: var(--navy); color: var(--gold-light);
+  transition: var(--transition); cursor: default;
+}
+.amenity-chip:hover { background: var(--navy-mid); }
+.amenity-chip svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ═══════════════════════════════════════
+   TOAST
+═══════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+  background: var(--gray-800); color: var(--white);
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-md);
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.3s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+
+/* ═══════════════════════════════════════
+   SIDEBAR OVERLAY
+═══════════════════════════════════════ */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 199;
+}
+.sidebar-overlay.show { display: block; }
+
+/* ═══════════════════════════════════════
+   PAGE FOOTER
+═══════════════════════════════════════ */
+.page-footer {
+  background: var(--white);
+  border-top: 1px solid var(--gray-100);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gray-400);
+}
+.page-footer .footer-brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: 13px;
+  color: var(--navy);
+  letter-spacing: 0.01em;
+}
+.page-footer .footer-credit {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--gray-600);
+  font-size: 12px;
+}
+.footer-credit .credit-label {
+  font-size: 10px;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-right: 2px;
+}
+.footer-credit .credit-name {
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.footer-credit .credit-divider {
+  width: 1px; height: 12px;
+  background: var(--gray-200);
+  display: inline-block;
+}
+
+/* ═══════════════════════════════════════
+   PRINT
+═══════════════════════════════════════ */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
+
+
+/* ═══════════════════════════════════════
+   PREMIUM HERO — bright, airy, boutique
+═══════════════════════════════════════ */
+
+.hero-showcase{
+  position:relative;
+  overflow:hidden;
+  border-radius:28px;
+  min-height:400px;
+  margin-bottom:28px;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(201,168,76,.32) 0%, rgba(201,168,76,0) 48%),
+    radial-gradient(circle at 6% 96%, rgba(12,26,46,.07) 0%, rgba(12,26,46,0) 50%),
+    linear-gradient(150deg, #FFFEFA 0%, #FCF6E7 46%, #F6E8C4 100%);
+  border:1px solid rgba(201,168,76,.28);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 24px 50px rgba(201,168,76,.14),
+    0 2px 10px rgba(12,26,46,.05);
+  display:flex;
+  align-items:center;
+}
+.hero-showcase::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 45%);
+  pointer-events:none;
+}
+.hero-content{
+  position:relative;
+  z-index:3;
+  max-width:600px;
+  padding:52px 60px;
+}
+.hero-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 22px;
+  border-radius:999px;
+  border:1px solid rgba(201,168,76,.45);
+  background:rgba(255,255,255,.7);
+  color:#8a6a22;
+  letter-spacing:.12em;
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:24px;
+  box-shadow:0 4px 14px rgba(201,168,76,.12);
+}
+.hero-title{
+  font-family:'DM Serif Display', serif;
+  font-size:58px;
+  line-height:1.04;
+  color:var(--navy);
+  margin-bottom:20px;
+}
+.hero-text{
+  color:var(--gray-600);
+  font-size:16.5px;
+  line-height:1.8;
+  max-width:500px;
+  margin-bottom:28px;
+}
+.hero-features{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.hero-pill{
+  background:rgba(255,255,255,.78);
+  border:1px solid var(--gray-200);
+  color:var(--navy);
+  padding:12px 20px;
+  border-radius:16px;
+  font-size:13px;
+  font-weight:500;
+  backdrop-filter:blur(8px);
+  box-shadow:0 6px 18px rgba(12,26,46,.06);
+  transition:var(--transition);
+}
+.hero-pill:hover{ transform:translateY(-3px); box-shadow:0 10px 22px rgba(201,168,76,.18); }
+.hero-art{
+  position:absolute;
+  right:-30px;
+  top:50%;
+  transform:translateY(-50%);
+  width:380px;
+  height:380px;
+  pointer-events:none;
+}
+.hero-art svg{ width:100%; height:100%; }
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .hero-art{ width:280px; height:280px; opacity:.7; }
+}
+@media (max-width: 768px) {
+  .hero-showcase{min-height:auto;}
+  .hero-art{display:none;}
+  .hero-content{padding:32px 28px;}
+  .hero-title{font-size:38px;}
+
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-btn { display: flex; }
+  .content { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .form-row { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .search-input { width: 140px; }
+  .topbar-right .btn span { display: none; }
+  .page-footer { padding: 12px 16px; }
+}
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .table-card-head { flex-direction: column; align-items: stretch; }
+  .search-input { width: 100%; }
+  .modal { max-height: 100vh; border-radius: 0; }
+  .page-footer { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V21H15v-5h-6v5H3V9.5z"/></svg>
+    </div>
+    <div class="brand-name">Elite Homestay</div>
+    <div class="brand-sub">Billing System</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-view="invoices" onclick="showView('invoices',this)">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Invoices
+    </div>
+    <div class="nav-item" data-view="guests" onclick="showView('guests',this)">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Guests
+    </div>
+    <div class="nav-section-label">Settings</div>
+    <div class="nav-item" data-view="property" onclick="showView('property',this)">
+      <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V21H15v-5h-6v5H3V9.5z"/></svg>
+      Property
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sync-row" title="Cloud sync status">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-text">Checking sync…</span>
+    </div>
+    <div class="contact-row">
+      <div class="contact-avatar">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 13.5 19.79 19.79 0 011.61 5C1.6 3.98 2.3 3.09 3.28 3h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 10.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      </div>
+      <div class="contact-info">
+        <div class="contact-num">77089 64330</div>
+        <div class="contact-label">Elite Homestay</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar no-print">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="page-heading" id="page-heading">Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="openModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>New Invoice</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="hero-showcase">
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 380 380" fill="none">
+          <circle cx="190" cy="190" r="150" stroke="#C9A84C" stroke-opacity="0.18" stroke-width="1.5"/>
+          <circle cx="190" cy="190" r="118" stroke="#C9A84C" stroke-opacity="0.28" stroke-width="1.5"/>
+          <path d="M110 250V160C110 121.34 145.34 90 184 90V90C222.66 90 258 121.34 258 160V250" stroke="#C9A84C" stroke-width="2.5"/>
+          <path d="M126 250V172C126 138.86 154.86 110 188 110V110C221.14 110 250 138.86 250 172V250" stroke="#C9A84C" stroke-opacity="0.55" stroke-width="1.5"/>
+          <line x1="92" y1="250" x2="276" y2="250" stroke="#0C1A2E" stroke-opacity="0.5" stroke-width="2.5"/>
+          <line x1="160" y1="250" x2="160" y2="190" stroke="#C9A84C" stroke-width="1.5"/>
+          <line x1="216" y1="250" x2="216" y2="190" stroke="#C9A84C" stroke-width="1.5"/>
+          <circle cx="188" cy="60" r="5" fill="#C9A84C" fill-opacity="0.7"/>
+        </svg>
+      </div>
+      <div class="hero-content">
+        <div class="hero-tag">Premium Luxury Stay</div>
+        <div class="hero-title">Elite Homestay</div>
+        <div class="hero-text">
+          Elegant homestay billing and guest management experience with a modern luxury interface inspired by your property ambience.
+        </div>
+        <div class="hero-features">
+          <div class="hero-pill">24/7 Support</div>
+          <div class="hero-pill">Luxury Rooms</div>
+          <div class="hero-pill">Smart Billing</div>
+          <div class="hero-pill">Guest Management</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card gold-accent">
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-value" id="s-revenue">₹0</div>
+          <div class="stat-meta">All paid invoices</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="s-pending">₹0</div>
+          <div class="stat-meta">Awaiting payment</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Guests</div>
+          <div class="stat-value" id="s-guests">0</div>
+          <div class="stat-meta">All time bookings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Overdue</div>
+          <div class="stat-value" id="s-overdue">₹0</div>
+          <div class="stat-meta">Needs attention</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-head">
+          <div class="table-card-title">Recent Invoices</div>
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" placeholder="Search guest…" id="dash-search" oninput="renderDash()" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Guest</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Nights</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dash-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="view" id="view-invoices">
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div class="stat-card" style="flex:1;min-width:120px">
+          <div class="stat-label">Paid</div>
+          <div class="stat-value" id="i-paid">₹0</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:120px">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="i-pend">₹0</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:120px">
+          <div class="stat-label">Overdue</div>
+          <div class="stat-value" id="i-over">₹0</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-card-head">
+          <div class="table-card-title">All Invoices</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="status-filter" onchange="renderInvoices()"
+              style="border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--gray-50);outline:none;color:var(--gray-800)">
+              <option value="">All status</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="overdue">Overdue</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Guest</th>
+                <th>Phone</th>
+                <th>Dates</th>
+                <th>Nights</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUESTS -->
+    <div class="view" id="view-guests">
+      <div class="table-card">
+        <div class="table-card-head">
+          <div class="table-card-title">Guest History</div>
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" placeholder="Search guest…" id="guest-search" oninput="renderGuests()" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Guest Name</th>
+                <th>Phone</th>
+                <th>Last Stay</th>
+                <th>Total Visits</th>
+                <th>Total Spend</th>
+                <th>Last Status</th>
+              </tr>
+            </thead>
+            <tbody id="guest-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPERTY -->
+    <div class="view" id="view-property">
+      <div class="prop-hero">
+        <div class="prop-hero-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V21H15v-5h-6v5H3V9.5z"/></svg>
+        </div>
+        <div>
+          <div class="prop-hero-name">Elite Homestay</div>
+          <div class="prop-hero-meta" id="hero-meta">Nagercoil, Tamil Nadu · +91 77089 64330</div>
+        </div>
+      </div>
+
+      <div class="prop-form-card" style="margin-bottom:16px">
+        <h3>Property Info</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Property Name</label><input value="Elite Homestay" id="prop-name" /></div>
+          <div class="form-group"><label>Contact Number</label><input value="+91 77089 64330" id="prop-phone" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>GST Number</label><input placeholder="33ABCDE1234F1Z5" id="prop-gst" /></div>
+          <div class="form-group"><label>Default Nightly Rate (₹)</label><input type="number" value="2500" id="prop-rate" /></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group"><label>Address</label><textarea id="prop-addr">12, Heritage Road, Nagercoil, Tamil Nadu – 629 001</textarea></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Check-in Time</label><input value="12:00 PM" id="prop-ci" /></div>
+          <div class="form-group"><label>Check-out Time</label><input value="11:00 AM" id="prop-co" /></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveProp()">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Save Changes
+        </button>
+      </div>
+
+      <div class="prop-form-card">
+        <h3>Amenities</h3>
+        <div class="amenity-chips">
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Wi-Fi</div>
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg> AC</div>
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h6a1 1 0 011 1v7a1 1 0 01-1 1h-6"/><line x1="1" y1="16" x2="17" y2="16"/></svg> TV</div>
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><path d="M3 2h1l2 7-1.5 1.5a11 11 0 005 5L11 14l7 2v1a1 1 0 01-1 1A18 18 0 013 2z"/></svg> Parking</div>
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><path d="M2 12h20M12 2a10 10 0 010 20"/></svg> Kitchen</div>
+          <div class="amenity-chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Hot Water</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- PAGE FOOTER -->
+  <footer class="page-footer no-print">
+    <div>
+      <span class="footer-brand">Elite Homestay</span>
+      <span style="margin-left:8px;color:var(--gray-300)">·</span>
+      <span style="margin-left:8px;color:var(--gray-400);font-size:12px">Nagercoil, Tamil Nadu</span>
+    </div>
+    <div class="footer-credit">
+      <span class="credit-label">Curated by</span>
+      <span class="credit-name">Vijiesh🤎</span>
+    </div>
+  </footer>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- NEW INVOICE MODAL -->
+<div class="modal-backdrop" id="modal" onclick="handleBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">New Invoice</div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Guest Name *</label>
+          <input id="f-guest" placeholder="Full name" />
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input id="f-phone" placeholder="+91 XXXXX XXXXX" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Check-in Date *</label>
+          <input id="f-ci" type="date" onchange="calcTotal()" />
+        </div>
+        <div class="form-group">
+          <label>Check-out Date *</label>
+          <input id="f-co" type="date" onchange="calcTotal()" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nightly Rate (₹)</label>
+          <input id="f-rate" type="number" value="2500" onchange="calcTotal()" oninput="calcTotal()" />
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select id="f-status">
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="overdue">Overdue</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="form-divider" />
+
+      <div class="section-label">
+        Extra Charges
+        <button class="btn btn-ghost btn-sm" onclick="addExtra()">+ Add Item</button>
+      </div>
+      <div id="extras-wrap"></div>
+
+      <div class="total-box">
+        <div class="total-row"><span>Room charges (<span id="t-nights">0</span> nights × ₹<span id="t-rate-disp">2500</span>)</span><span id="t-room">₹0</span></div>
+        <div class="total-row"><span>Extra charges</span><span id="t-extra">₹0</span></div>
+        <div class="total-row"><span>GST (12%)</span><span id="t-gst">₹0</span></div>
+        <div class="total-row grand"><span>Total Amount</span><span id="t-total">₹0</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveInvoice()">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Invoice
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// ☁️ CLOUD SYNC CONFIG — paste your Supabase values here
+// Get these from: Supabase dashboard → Project Settings → API
+// Leave as-is to run on local-only storage (per-browser, no sync).
+// ═══════════════════════════════════════
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';       // e.g. https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // the "anon public" key
+
+let cloud = null;
+let cloudReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
+if (cloudReady) {
+  cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if (!dot || !txt) return;
+  const map = {
+    local:     ['#9E9B93', 'Local only — not connected to cloud'],
+    connected: ['#2D6A4F', 'Synced to cloud'],
+    syncing:   ['#C9A84C', 'Syncing…'],
+    error:     ['#791F1F', 'Cloud sync error — saved locally'],
+  };
+  const [color, label] = map[state] || map.local;
+  dot.style.background = color;
+  txt.textContent = label;
+}
+
+// ═══════════════════════════════════════
+// ONE-TIME CLEAN SLATE (v2 fresh delivery)
+// Clears any old seed/demo data from previous versions
+// ═══════════════════════════════════════
+if (!localStorage.getItem('eh_v2_clean')) {
+  localStorage.removeItem('eh_invoices');
+  localStorage.removeItem('eh_settings');
+  localStorage.setItem('eh_v2_clean', '1');
+}
+
+// ═══════════════════════════════════════
+// STATE — local cache first, then reconciled with cloud on load
+// ═══════════════════════════════════════
+let invoices = JSON.parse(localStorage.getItem('eh_invoices') || '[]');
+let settings = JSON.parse(localStorage.getItem('eh_settings') || JSON.stringify({
+  name: 'Elite Homestay',
+  phone: '+91 77089 64330',
+  gst: '',
+  rate: 2500,
+  address: 'Nagercoil, Tamil Nadu – 629 001',
+  checkin: '12:00 PM',
+  checkout: '11:00 AM'
+}));
+
+// ═══════════════════════════════════════
+// PERSIST — writes to localStorage immediately, then syncs to cloud
+// ═══════════════════════════════════════
+function save() {
+  localStorage.setItem('eh_invoices', JSON.stringify(invoices));
+  syncToCloud('invoices', invoices);
+}
+function saveSettings() {
+  localStorage.setItem('eh_settings', JSON.stringify(settings));
+  syncToCloud('settings', settings);
+}
+
+async function syncToCloud(key, value) {
+  if (!cloudReady) { setSyncStatus('local'); return; }
+  setSyncStatus('syncing');
+  try {
+    const { error } = await cloud.from('app_data').upsert({
+      id: key, value: value, updated_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    setSyncStatus('connected');
+  } catch (e) {
+    console.error('Cloud sync failed:', e);
+    setSyncStatus('error');
+    toast('Saved locally, but cloud sync failed', 'error');
+  }
+}
+
+async function loadFromCloud() {
+  if (!cloudReady) { setSyncStatus('local'); return; }
+  setSyncStatus('syncing');
+  try {
+    const { data, error } = await cloud.from('app_data').select('id, value');
+    if (error) throw error;
+    (data || []).forEach(row => {
+      if (row.id === 'invoices' && Array.isArray(row.value)) {
+        invoices = row.value;
+        localStorage.setItem('eh_invoices', JSON.stringify(invoices));
+      }
+      if (row.id === 'settings' && row.value) {
+        settings = row.value;
+        localStorage.setItem('eh_settings', JSON.stringify(settings));
+      }
+    });
+    setSyncStatus('connected');
+    refresh();
+    hydrateSettingsForm();
+  } catch (e) {
+    console.error('Cloud load failed:', e);
+    setSyncStatus('error');
+  }
+}
+
+function hydrateSettingsForm() {
+  if (settings.gst)     document.getElementById('prop-gst').value  = settings.gst;
+  if (settings.rate)    document.getElementById('prop-rate').value = settings.rate;
+  if (settings.name)    document.getElementById('prop-name').value = settings.name;
+  if (settings.phone)   document.getElementById('prop-phone').value = settings.phone;
+  if (settings.address) document.getElementById('prop-addr').value = settings.address;
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+const INR = n => '₹' + Math.round(n).toLocaleString('en-IN');
+const badgeMap = { paid:'badge-paid', pending:'badge-pending', overdue:'badge-overdue', staying:'badge-staying' };
+function badge(s) { return `<span class="badge ${badgeMap[s]||'badge-pending'}">${s}</span>`; }
+function nextId() {
+  const nums = invoices.map(i => parseInt(i.id.replace('EH-',''),10)).filter(n => !isNaN(n));
+  const next = nums.length ? Math.max(...nums) + 1 : 1;
+  return 'EH-' + String(next).padStart(3,'0');
+}
+
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${+day} ${months[+m-1]} ${y}`;
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+const headings = { dashboard:'Dashboard', invoices:'Invoices', guests:'Guests', property:'Property' };
+
+function showView(name, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-heading').textContent = headings[name] || name;
+  closeSidebar();
+  refresh();
+}
+
+// ═══════════════════════════════════════
+// SIDEBAR MOBILE
+// ═══════════════════════════════════════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ═══════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════
+function renderDash() {
+  const q = document.getElementById('dash-search')?.value.toLowerCase() || '';
+  const data = invoices.filter(b => b.guest.toLowerCase().includes(q) || b.id.toLowerCase().includes(q));
+  const tbody = document.getElementById('dash-tbody');
+  if (!tbody) return;
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="empty-title">No invoices yet</div>
+        <p>Click <strong>New Invoice</strong> in the top-right to create your first billing.</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.slice(0, 10).map(b => `
+    <tr>
+      <td class="mono">${b.id}</td>
+      <td style="font-weight:500">${b.guest}</td>
+      <td>${fmtDate(b.ci)}</td>
+      <td>${fmtDate(b.co)}</td>
+      <td style="text-align:center">${b.nights}</td>
+      <td style="font-weight:600">${INR(b.total)}</td>
+      <td>${badge(b.status)}</td>
+      <td>
+        <div class="action-group">
+          <button class="icon-btn" title="Print Invoice" onclick="printInvoice('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </button>
+          <button class="icon-btn" title="Mark as Paid" onclick="markPaid('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="icon-btn" title="Delete" onclick="deleteInv('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════
+// RENDER INVOICES
+// ═══════════════════════════════════════
+function renderInvoices() {
+  const f = document.getElementById('status-filter')?.value || '';
+  const data = f ? invoices.filter(b => b.status === f) : invoices;
+  const tbody = document.getElementById('inv-tbody');
+  if (!tbody) return;
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="empty-title">${f ? 'No ' + f + ' invoices' : 'No invoices yet'}</div>
+        <p>${f ? 'Try selecting a different filter.' : 'Your invoices will appear here once created.'}</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(b => `
+    <tr>
+      <td class="mono">${b.id}</td>
+      <td style="font-weight:500">${b.guest}</td>
+      <td>${b.phone || '—'}</td>
+      <td style="font-size:12px">${fmtDate(b.ci)} → ${fmtDate(b.co)}</td>
+      <td style="text-align:center">${b.nights}</td>
+      <td style="font-weight:600">${INR(b.total)}</td>
+      <td>${badge(b.status)}</td>
+      <td>
+        <div class="action-group">
+          <button class="icon-btn" title="Print" onclick="printInvoice('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </button>
+          <button class="icon-btn" title="Mark Paid" onclick="markPaid('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="icon-btn" title="Delete" onclick="deleteInv('${b.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  const paid = invoices.filter(b=>b.status==='paid').reduce((a,b)=>a+b.total,0);
+  const pend = invoices.filter(b=>b.status==='pending').reduce((a,b)=>a+b.total,0);
+  const over = invoices.filter(b=>b.status==='overdue').reduce((a,b)=>a+b.total,0);
+  if(document.getElementById('i-paid')) document.getElementById('i-paid').textContent = INR(paid);
+  if(document.getElementById('i-pend')) document.getElementById('i-pend').textContent = INR(pend);
+  if(document.getElementById('i-over')) document.getElementById('i-over').textContent = INR(over);
+}
+
+// ═══════════════════════════════════════
+// RENDER GUESTS
+// ═══════════════════════════════════════
+function renderGuests() {
+  const q = document.getElementById('guest-search')?.value.toLowerCase() || '';
+  const guestMap = {};
+  invoices.forEach(b => {
+    const key = b.phone || b.guest;
+    if (!guestMap[key]) guestMap[key] = { name:b.guest, phone:b.phone, visits:0, spend:0, lastStay:'', lastStatus:'' };
+    guestMap[key].visits++;
+    guestMap[key].spend += b.total;
+    if (!guestMap[key].lastStay || b.co > guestMap[key].lastStay) {
+      guestMap[key].lastStay = b.co;
+      guestMap[key].lastStatus = b.status;
+    }
+  });
+  const guests = Object.values(guestMap).filter(g =>
+    g.name.toLowerCase().includes(q) || (g.phone||'').includes(q)
+  );
+  const tbody = document.getElementById('guest-tbody');
+  if (!tbody) return;
+  if (!guests.length) {
+    tbody.innerHTML = `<tr><td colspan="6">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <div class="empty-title">No guests yet</div>
+        <p>Guest profiles are built automatically from invoices.</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = guests.map(g => `
+    <tr>
+      <td style="font-weight:500">${g.name}</td>
+      <td>${g.phone || '—'}</td>
+      <td>${fmtDate(g.lastStay)}</td>
+      <td style="text-align:center">${g.visits}</td>
+      <td style="font-weight:600">${INR(g.spend)}</td>
+      <td>${badge(g.lastStatus)}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════
+function renderStats() {
+  const paid = invoices.filter(b=>b.status==='paid').reduce((a,b)=>a+b.total,0);
+  const pend = invoices.filter(b=>b.status==='pending').reduce((a,b)=>a+b.total,0);
+  const over = invoices.filter(b=>b.status==='overdue').reduce((a,b)=>a+b.total,0);
+  if(document.getElementById('s-revenue')) document.getElementById('s-revenue').textContent = INR(paid);
+  if(document.getElementById('s-pending')) document.getElementById('s-pending').textContent = INR(pend);
+  if(document.getElementById('s-overdue')) document.getElementById('s-overdue').textContent = INR(over);
+  if(document.getElementById('s-guests'))  document.getElementById('s-guests').textContent  = invoices.length;
+}
+
+function refresh() { renderStats(); renderDash(); renderInvoices(); renderGuests(); }
+
+// ═══════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-ci').value = today;
+  document.getElementById('f-co').value = today;
+  document.getElementById('f-guest').value = '';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-rate').value = settings.rate || 2500;
+  document.getElementById('f-status').value = 'paid';
+  document.getElementById('extras-wrap').innerHTML = '';
+  calcTotal();
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function handleBackdropClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+function addExtra() {
+  const wrap = document.getElementById('extras-wrap');
+  const div = document.createElement('div');
+  div.className = 'extra-item';
+  div.innerHTML = `
+    <input placeholder="Description (e.g. Food, Laundry)" oninput="calcTotal()" />
+    <input class="inp-sm" type="number" placeholder="₹ Amount" oninput="calcTotal()" />
+    <button class="icon-btn" onclick="this.parentElement.remove();calcTotal()" title="Remove">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  wrap.appendChild(div);
+}
+
+function calcTotal() {
+  const ci = new Date(document.getElementById('f-ci').value);
+  const co = new Date(document.getElementById('f-co').value);
+  const nights = (!isNaN(ci) && !isNaN(co)) ? Math.max(0, (co - ci) / 86400000) : 0;
+  const rate = parseFloat(document.getElementById('f-rate').value) || 0;
+  const room = nights * rate;
+  let extra = 0;
+  document.querySelectorAll('#extras-wrap .extra-item').forEach(row => {
+    extra += parseFloat(row.querySelectorAll('input')[1].value) || 0;
+  });
+  const gst = Math.round((room + extra) * 0.12);
+  const total = room + extra + gst;
+  document.getElementById('t-nights').textContent = nights;
+  document.getElementById('t-rate-disp').textContent = Math.round(rate).toLocaleString('en-IN');
+  document.getElementById('t-room').textContent = INR(room);
+  document.getElementById('t-extra').textContent = INR(extra);
+  document.getElementById('t-gst').textContent = INR(gst);
+  document.getElementById('t-total').textContent = INR(total);
+}
+
+function saveInvoice() {
+  const guest = document.getElementById('f-guest').value.trim();
+  if (!guest) { toast('Please enter guest name', 'error'); return; }
+  const ci = document.getElementById('f-ci').value;
+  const co = document.getElementById('f-co').value;
+  if (!ci || !co) { toast('Please enter check-in and check-out dates', 'error'); return; }
+  if (co < ci) { toast('Check-out must be after check-in', 'error'); return; }
+  const nights = Math.max(0, (new Date(co) - new Date(ci)) / 86400000);
+  const rate = parseFloat(document.getElementById('f-rate').value) || 0;
+  const room = Math.round(nights * rate);
+  const extras = [];
+  let extra = 0;
+  document.querySelectorAll('#extras-wrap .extra-item').forEach(row => {
+    const desc = row.querySelectorAll('input')[0].value.trim();
+    const amt = parseFloat(row.querySelectorAll('input')[1].value) || 0;
+    if (desc && amt) { extras.push({ desc, amt }); extra += amt; }
+  });
+  const gst = Math.round((room + extra) * 0.12);
+  const total = room + extra + gst;
+  const inv = {
+    id: nextId(),
+    guest,
+    phone: document.getElementById('f-phone').value.trim(),
+    ci, co, nights, rate, room, extra, extras, gst, total,
+    status: document.getElementById('f-status').value,
+    date: new Date().toISOString().split('T')[0]
+  };
+  invoices.unshift(inv);
+  save();
+  closeModal();
+  refresh();
+  toast('Invoice saved successfully!', 'success');
+}
+
+// ═══════════════════════════════════════
+// INVOICE ACTIONS
+// ═══════════════════════════════════════
+function markPaid(id) {
+  const inv = invoices.find(b => b.id === id);
+  if (inv) { inv.status = 'paid'; save(); refresh(); toast('Marked as paid', 'success'); }
+}
+
+function deleteInv(id) {
+  if (!confirm('Delete this invoice? This cannot be undone.')) return;
+  invoices = invoices.filter(b => b.id !== id);
+  save(); refresh();
+  toast('Invoice deleted');
+}
+
+function saveProp() {
+  settings.name    = document.getElementById('prop-name').value;
+  settings.phone   = document.getElementById('prop-phone').value;
+  settings.gst     = document.getElementById('prop-gst').value;
+  settings.rate    = parseFloat(document.getElementById('prop-rate').value) || 2500;
+  settings.address = document.getElementById('prop-addr').value;
+  settings.checkin = document.getElementById('prop-ci').value;
+  settings.checkout= document.getElementById('prop-co').value;
+  saveSettings();
+  toast('Settings saved!', 'success');
+}
+
+// ═══════════════════════════════════════
+// PRINT INVOICE
+// ═══════════════════════════════════════
+function printInvoice(id) {
+  const b = invoices.find(x => x.id === id);
+  if (!b) return;
+  const statusColor = { paid:'#2D6A4F', pending:'#854F0B', overdue:'#791F1F' };
+  const statusBg   = { paid:'#D8F3DC', pending:'#FAEEDA', overdue:'#FCEBEB' };
+  const extrasRows = (b.extras || []).map(e =>
+    `<tr><td>${e.desc}</td><td style="text-align:right">₹${Math.round(e.amt).toLocaleString('en-IN')}</td></tr>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"><title>Invoice ${b.id} — Elite Homestay</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Georgia,sans-serif;max-width:480px;margin:30px auto;padding:20px;font-size:13px;color:#2E2C28;background:#fff}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #0C1A2E}
+    .brand-name{font-size:20px;font-weight:700;color:#0C1A2E}
+    .brand-sub{font-size:11px;color:#9E9B93;margin-top:3px}
+    .inv-badge{padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;background:${statusBg[b.status]||'#FAEEDA'};color:${statusColor[b.status]||'#854F0B'}}
+    h2{font-size:15px;margin-bottom:14px;color:#0C1A2E}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:20px}
+    .info-item label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#9E9B93;display:block;margin-bottom:2px}
+    .info-item span{font-size:13px;font-weight:500}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    th{background:#F7F6F3;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#9E9B93;border-bottom:1px solid #EDEBE6}
+    td{padding:9px 10px;border-bottom:1px solid #EDEBE6;font-size:13px}
+    .totals{background:#F7F6F3;border-radius:8px;padding:14px 16px;margin-bottom:20px}
+    .tot-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;color:#6B6860}
+    .tot-row.grand{font-weight:700;font-size:16px;color:#2E2C28;border-top:1px solid #D9D6CE;padding-top:10px;margin-top:6px;margin-bottom:0}
+    .footer{text-align:center;font-size:11px;color:#9E9B93;margin-top:20px;padding-top:14px;border-top:1px solid #EDEBE6}
+    @media print{.no-print{display:none}}
+  </style></head><body>
+  <div class="header">
+    <div>
+      <div class="brand-name">Elite Homestay</div>
+      <div class="brand-sub">Nagercoil, Tamil Nadu</div>
+      <div class="brand-sub" style="margin-top:2px">+91 77089 64330${settings.gst ? ' · GST: ' + settings.gst : ''}</div>
+    </div>
+    <span class="inv-badge">${b.status.toUpperCase()}</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2>Invoice ${b.id}</h2>
+    <span style="font-size:12px;color:#9E9B93">Date: ${fmtDate(b.date || b.co)}</span>
+  </div>
+  <div class="info-grid">
+    <div class="info-item"><label>Guest Name</label><span>${b.guest}</span></div>
+    <div class="info-item"><label>Phone</label><span>${b.phone || '—'}</span></div>
+    <div class="info-item"><label>Check-in</label><span>${fmtDate(b.ci)}</span></div>
+    <div class="info-item"><label>Check-out</label><span>${fmtDate(b.co)}</span></div>
+    <div class="info-item"><label>Duration</label><span>${b.nights} night${b.nights !== 1 ? 's' : ''}</span></div>
+    <div class="info-item"><label>Nightly Rate</label><span>₹${Math.round(b.rate).toLocaleString('en-IN')}</span></div>
+  </div>
+  <table>
+    <thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+      <tr><td>Room charges (${b.nights} nights × ₹${Math.round(b.rate).toLocaleString('en-IN')})</td><td style="text-align:right">₹${Math.round(b.room).toLocaleString('en-IN')}</td></tr>
+      ${extrasRows}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div class="tot-row"><span>Subtotal</span><span>₹${Math.round(b.room + b.extra).toLocaleString('en-IN')}</span></div>
+    <div class="tot-row"><span>GST (12%)</span><span>₹${Math.round(b.gst).toLocaleString('en-IN')}</span></div>
+    <div class="tot-row grand"><span>Total Amount</span><span>₹${Math.round(b.total).toLocaleString('en-IN')}</span></div>
+  </div>
+  <div class="footer">
+    Thank you for staying at Elite Homestay!<br>
+    For queries, call <strong>+91 77089 64330</strong><br>
+    ${settings.address}
+  </div>
+  <br>
+  <button class="no-print" onclick="window.print()" style="width:100%;padding:12px;background:#0C1A2E;color:#F0DFA0;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+    🖨️ Print Invoice
+  </button>
+  </body></html>`;
+
+  const w = window.open('', '_blank', 'width=520,height=720');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ═══════════════════════════════════════
+// INIT — render local cache instantly, then reconcile with cloud
+// ═══════════════════════════════════════
+refresh();
+hydrateSettingsForm();
+loadFromCloud();
+</script>
+</body>
+</html>
