@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Elite Homestay — Billing</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ═══════════════════════════════════════
    TOKENS
@@ -1086,11 +1085,7 @@ tbody tr:hover td { background: #FAFAF7; }
 const SUPABASE_URL      = 'https://hgqffuwnhsnhqtedbxrg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_ZmAUhImRPfgKE9GJmg4bXg_n53myQNP';
 
-let cloud = null;
 let cloudReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
-if (cloudReady) {
-  cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
 
 function setSyncStatus(state) {
   const dot = document.getElementById('sync-dot');
@@ -1147,10 +1142,16 @@ async function syncToCloud(key, value) {
   if (!cloudReady) { setSyncStatus('local'); return; }
   setSyncStatus('syncing');
   try {
-    const { error } = await cloud.from('app_data').upsert({
-      id: key, value: value, updated_at: new Date().toISOString()
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({ id: key, value: value, updated_at: new Date().toISOString() })
     });
-    if (error) throw error;
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     setSyncStatus('connected');
   } catch (e) {
     console.error('Cloud sync failed:', e);
@@ -1163,8 +1164,11 @@ async function loadFromCloud() {
   if (!cloudReady) { setSyncStatus('local'); return; }
   setSyncStatus('syncing');
   try {
-    const { data, error } = await cloud.from('app_data').select('id, value');
-    if (error) throw error;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?select=id,value`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
     (data || []).forEach(row => {
       if (row.id === 'invoices' && Array.isArray(row.value)) {
         invoices = row.value;
